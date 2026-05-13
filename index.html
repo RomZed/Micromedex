@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Micromedex CKO API Tester</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --surface3: #1e2d42;
+    --border: #243149;
+    --border2: #2e4060;
+    --accent: #00d4ff;
+    --accent2: #0096cc;
+    --text: #e2eaf5;
+    --text2: #8ba3c0;
+    --text3: #4d6480;
+    --red: #ef4444;
+    --orange: #f97316;
+    --amber: #f59e0b;
+    --blue: #3b82f6;
+    --green: #22c55e;
+    --purple: #a855f7;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --font-sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-weight: 600; font-size: 11px;
+    color: #000; letter-spacing: -0.5px;
+  }
+  .logo-text { font-size: 13px; font-weight: 600; letter-spacing: 0.5px; color: var(--text); }
+  .logo-sub { font-size: 11px; color: var(--text3); font-family: var(--font-mono); }
+
+  .header-actions { display: flex; align-items: center; gap: 8px; }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--text3); transition: background 0.3s;
+  }
+  .status-dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .status-dot.error { background: var(--red); }
+  .status-label { font-size: 11px; font-family: var(--font-mono); color: var(--text3); }
+
+  /* LAYOUT */
+  .app { display: grid; grid-template-columns: 270px 1fr; height: calc(100vh - 56px); }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow-y: auto;
+  }
+  .sidebar-section { padding: 16px; border-bottom: 1px solid var(--border); }
+  .sidebar-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--text3); margin-bottom: 10px;
+    font-family: var(--font-mono);
+  }
+
+  /* Config inputs */
+  .config-field { margin-bottom: 10px; }
+  .config-field label { display: block; font-size: 11px; font-family: var(--font-mono); color: var(--text2); margin-bottom: 4px; }
+  .config-field input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 4px; padding: 6px 8px; color: var(--text);
+    font-family: var(--font-mono); font-size: 11px; outline: none; transition: border-color 0.2s;
+  }
+  .config-field input:focus { border-color: var(--accent); }
+  .config-field input::placeholder { color: var(--text3); }
+
+  .config-hint { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-top: 4px; line-height: 1.4; }
+
+  .btn-test-conn {
+    width: 100%; background: transparent; border: 1px solid var(--accent);
+    color: var(--accent); padding: 6px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 11px; cursor: pointer;
+    transition: all 0.2s; margin-top: 4px;
+  }
+  .btn-test-conn:hover { background: var(--accent); color: #000; }
+
+  /* NAV TABS */
+  .nav-tabs { padding: 8px; }
+  .nav-tab {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 6px; cursor: pointer;
+    transition: all 0.15s; margin-bottom: 2px; border: none;
+    background: none; width: 100%; text-align: left; color: var(--text2);
+  }
+  .nav-tab:hover { background: var(--surface2); color: var(--text); }
+  .nav-tab.active { background: var(--surface3); color: var(--accent); }
+  .nav-tab-icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .nav-tab-text { font-size: 13px; font-weight: 500; }
+  .nav-tab-badge {
+    margin-left: auto; background: var(--accent); color: #000;
+    font-size: 10px; font-family: var(--font-mono); font-weight: 600;
+    padding: 1px 5px; border-radius: 10px; min-width: 18px; text-align: center; display: none;
+  }
+  .nav-tab-badge.visible { display: block; }
+
+  /* PATIENT PANEL */
+  .patient-fields { display: flex; flex-direction: column; gap: 8px; }
+  .patient-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .patient-field label {
+    display: block; font-size: 10px; font-family: var(--font-mono);
+    color: var(--text3); margin-bottom: 3px;
+  }
+  .patient-field input, .patient-field select {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 4px; padding: 5px 7px; color: var(--text);
+    font-family: var(--font-mono); font-size: 11px; outline: none;
+  }
+  .patient-field input:focus, .patient-field select:focus { border-color: var(--accent); }
+  .patient-field select option { background: var(--surface); }
+  .checkbox-row { display: flex; gap: 12px; align-items: center; margin-top: 4px; }
+  .checkbox-item {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; font-family: var(--font-mono); color: var(--text2); cursor: pointer;
+  }
+  .checkbox-item input[type=checkbox] { cursor: pointer; accent-color: var(--accent); }
+
+  /* MAIN CONTENT */
+  .main { display: flex; flex-direction: column; overflow: hidden; }
+  .panel { display: none; flex-direction: column; height: 100%; overflow: hidden; }
+  .panel.active { display: flex; }
+
+  .panel-header {
+    padding: 16px 24px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  .panel-title { font-size: 16px; font-weight: 600; color: var(--text); }
+  .panel-desc { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .panel-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+  /* DRUG LIST INPUT */
+  .drug-input-area {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px; margin-bottom: 16px;
+  }
+  .drug-input-area label {
+    font-size: 11px; font-family: var(--font-mono); color: var(--text2);
+    display: block; margin-bottom: 10px;
+  }
+  .drug-tags { display: flex; flex-wrap: wrap; gap: 6px; min-height: 32px; margin-bottom: 10px; }
+  .drug-tag {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface3); border: 1px solid var(--border2);
+    border-radius: 16px; padding: 4px 10px 4px 12px;
+    font-size: 12px; font-family: var(--font-mono); color: var(--accent);
+    animation: fadeIn 0.2s ease;
+  }
+  .drug-tag.current { color: var(--text2); border-color: var(--border); }
+  .drug-tag-label { font-size: 9px; color: var(--text3); margin-left: 2px; }
+  .drug-tag-remove {
+    background: none; border: none; color: var(--text3); cursor: pointer;
+    font-size: 14px; line-height: 1; padding: 0; transition: color 0.15s;
+  }
+  .drug-tag-remove:hover { color: var(--red); }
+  .drug-add-row { display: flex; gap: 8px; align-items: flex-end; }
+  .drug-add-row input {
+    flex: 1; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 4px; padding: 8px 12px; color: var(--text);
+    font-family: var(--font-mono); font-size: 12px; outline: none; transition: border-color 0.2s;
+  }
+  .drug-add-row input:focus { border-color: var(--accent); }
+  .drug-add-row select {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+    padding: 8px 8px; color: var(--text); font-family: var(--font-mono); font-size: 11px; outline: none;
+  }
+  .btn-add-drug {
+    background: var(--surface3); border: 1px solid var(--border2); color: var(--accent);
+    padding: 8px 14px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px;
+    cursor: pointer; white-space: nowrap; transition: all 0.15s;
+  }
+  .btn-add-drug:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  .list-type-toggle {
+    display: flex; gap: 4px; margin-bottom: 6px;
+  }
+  .list-toggle-btn {
+    background: none; border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text3); font-family: var(--font-mono); font-size: 10px; padding: 3px 8px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .list-toggle-btn.active { background: var(--surface3); border-color: var(--accent); color: var(--accent); }
+
+  /* ACTION BUTTONS */
+  .action-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .btn-primary {
+    background: var(--accent); color: #000; border: none; padding: 10px 20px;
+    border-radius: 6px; font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px;
+  }
+  .btn-primary:hover { background: #00e5ff; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-secondary {
+    background: var(--surface2); color: var(--text2); border: 1px solid var(--border);
+    padding: 10px 16px; border-radius: 6px; font-family: var(--font-mono); font-size: 12px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-secondary:hover { background: var(--surface3); color: var(--text); }
+
+  /* SINGLE DRUG FORM */
+  .single-drug-form { margin-bottom: 16px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-field label {
+    display: block; font-size: 11px; font-family: var(--font-mono);
+    color: var(--text2); margin-bottom: 6px;
+  }
+  .form-field input, .form-field select {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 12px; color: var(--text);
+    font-family: var(--font-mono); font-size: 12px; outline: none; transition: border-color 0.2s;
+  }
+  .form-field input:focus, .form-field select:focus { border-color: var(--accent); }
+  .form-field select option { background: var(--surface); }
+
+  /* LOADING */
+  .loading { display: flex; align-items: center; gap: 12px; padding: 24px 0; }
+  .spinner {
+    width: 18px; height: 18px; border: 2px solid var(--border2);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+  /* RESULT CARDS */
+  .stats-bar {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; padding: 12px;
+    background: var(--surface); border-radius: 8px; border: 1px solid var(--border);
+  }
+  .stat-chip {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 8px 14px; border-radius: 6px; background: var(--surface2);
+    border: 1px solid var(--border); min-width: 70px;
+  }
+  .stat-chip.danger { border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.08); }
+  .stat-chip.warn { border-color: rgba(249,115,22,0.4); background: rgba(249,115,22,0.08); }
+  .stat-chip.info { border-color: rgba(245,158,11,0.4); background: rgba(245,158,11,0.08); }
+  .stat-chip.ok { border-color: rgba(59,130,246,0.4); background: rgba(59,130,246,0.08); }
+  .stat-value { font-size: 20px; font-weight: 600; font-family: var(--font-mono); color: var(--text); }
+  .stat-label { font-size: 10px; color: var(--text3); font-family: var(--font-mono); margin-top: 2px; }
+
+  .results-area { display: flex; flex-direction: column; gap: 8px; }
+  .result-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden; transition: border-color 0.15s;
+  }
+  .result-card:hover { border-color: var(--border2); }
+  .result-card-header {
+    display: flex; align-items: center; gap: 10px; padding: 12px 16px;
+    cursor: pointer; border-bottom: 1px solid transparent; transition: background 0.15s;
+  }
+  .result-card-header:hover { background: var(--surface2); }
+  .result-card-title { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); }
+  .result-card-meta { font-size: 11px; color: var(--text3); font-family: var(--font-mono); }
+  .result-card-body {
+    display: none; padding: 16px; border-top: 1px solid var(--border);
+    animation: fadeIn 0.15s ease;
+  }
+  .result-card-body.open { display: block; }
+
+  .severity-badge {
+    font-size: 10px; font-weight: 600; font-family: var(--font-mono);
+    padding: 3px 7px; border-radius: 4px; letter-spacing: 0.3px; white-space: nowrap;
+  }
+  .sev-CONTRAINDICATED { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+  .sev-MAJOR { background: rgba(249,115,22,0.15); color: #f97316; border: 1px solid rgba(249,115,22,0.3); }
+  .sev-MODERATE { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+  .sev-MINOR { background: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
+  .sev-UNKNOWN { background: rgba(107,114,128,0.15); color: #9ca3af; border: 1px solid rgba(107,114,128,0.3); }
+
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .detail-item label { font-size: 10px; font-family: var(--font-mono); color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+  .detail-item p { font-size: 13px; color: var(--text); margin-top: 3px; }
+  .detail-text {
+    font-size: 12px; color: var(--text2); line-height: 1.6;
+    padding: 10px 12px; background: var(--bg); border-radius: 6px;
+    border-left: 3px solid var(--border2);
+  }
+
+  /* REQUEST LOG */
+  .req-log {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; margin-bottom: 12px; font-family: var(--font-mono); font-size: 11px;
+  }
+  .req-method { color: var(--accent); font-weight: 600; }
+  .req-url { flex: 1; color: var(--text3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .req-status-ok { color: var(--green); }
+  .req-status-err { color: var(--red); }
+
+  /* RAW JSON VIEWER */
+  .json-viewer {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 16px; overflow-x: auto; font-family: var(--font-mono); font-size: 11px;
+    line-height: 1.7; max-height: 600px; overflow-y: auto;
+  }
+  .json-key { color: var(--accent); }
+  .json-string { color: var(--green); }
+  .json-number { color: var(--orange); }
+  .json-bool { color: var(--purple); }
+  .json-null { color: var(--text3); }
+
+  /* BANNERS */
+  .error-banner {
+    padding: 12px 16px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 6px; color: var(--red); font-size: 13px;
+  }
+  .success-banner {
+    padding: 12px 16px; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3);
+    border-radius: 6px; color: var(--green); font-size: 13px;
+  }
+  .info-banner {
+    padding: 12px 16px; background: rgba(0,212,255,0.07); border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 6px; color: var(--text2); font-size: 12px; margin-bottom: 16px;
+  }
+
+  /* RAW REQUEST/RESPONSE PANEL */
+  .raw-toggle {
+    font-size: 11px; color: var(--text3); font-family: var(--font-mono);
+    background: none; border: none; cursor: pointer; padding: 4px 8px;
+    border-radius: 4px; transition: color 0.15s;
+  }
+  .raw-toggle:hover { color: var(--accent); }
+  .raw-section { margin-top: 16px; }
+  .raw-section-label { font-size: 10px; font-family: var(--font-mono); color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">Rx</div>
+    <div>
+      <div class="logo-text">Micromedex CKO Tester</div>
+      <div class="logo-sub">JSON API · v2024</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <div class="status-dot" id="statusDot"></div>
+    <span class="status-label" id="statusLabel">not tested</span>
+  </div>
+</header>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <!-- Config -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">CKO Connection</div>
+      <div class="config-field">
+        <label>ENDPOINT URL</label>
+        <input type="text" id="cfgUrl" placeholder="https://www.micromedexsolutions.com/ckoapp/librarian/PFActionId/ckoapp.JsonRequest" />
+      </div>
+      <div class="config-field">
+        <label>USERNAME</label>
+        <input type="text" id="cfgUser" placeholder="your username" autocomplete="username" />
+      </div>
+      <div class="config-field">
+        <label>PASSWORD</label>
+        <input type="password" id="cfgPass" placeholder="your password" autocomplete="current-password" />
+      </div>
+      <div class="config-hint">
+        Credentials sent as HTTP Basic Auth on every request.
+      </div>
+      <button class="btn-test-conn" onclick="testConnection()">▷ Test Connection (Status)</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="sidebar-section" style="padding: 8px 0;">
+      <div class="sidebar-label" style="padding: 0 16px; margin-bottom: 4px;">Services</div>
+      <nav class="nav-tabs">
+        <button class="nav-tab active" onclick="switchTab('mas','ddi',this)">
+          <span class="nav-tab-icon">⚡</span>
+          <span class="nav-tab-text">MAS Screening</span>
+          <span class="nav-tab-badge" id="badge-ddi"></span>
+        </button>
+        <button class="nav-tab" onclick="switchTab('lookup',null,this)">
+          <span class="nav-tab-icon">🔍</span>
+          <span class="nav-tab-text">Drug Lookup</span>
+        </button>
+        <button class="nav-tab" onclick="switchTab('drugnotes',null,this)">
+          <span class="nav-tab-icon">📋</span>
+          <span class="nav-tab-text">DrugNotes</span>
+        </button>
+        <button class="nav-tab" onclick="switchTab('drugpoints',null,this)">
+          <span class="nav-tab-icon">💊</span>
+          <span class="nav-tab-text">DrugPoints</span>
+        </button>
+        <button class="nav-tab" onclick="switchTab('validate',null,this)">
+          <span class="nav-tab-icon">✓</span>
+          <span class="nav-tab-text">Validate Drug</span>
+        </button>
+        <button class="nav-tab" onclick="switchTab('raw',null,this)">
+          <span class="nav-tab-icon">{}</span>
+          <span class="nav-tab-text">Raw Request</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Patient Context -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Patient Context (MAS)</div>
+      <div class="patient-fields">
+        <div class="patient-row">
+          <div class="patient-field">
+            <label>GENDER</label>
+            <select id="ptGender">
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+            </select>
+          </div>
+          <div class="patient-field">
+            <label>BIRTH YEAR</label>
+            <input type="text" id="ptYear" placeholder="1955" maxlength="4" />
+          </div>
+        </div>
+        <div class="patient-row">
+          <div class="patient-field">
+            <label>BIRTH MONTH</label>
+            <input type="text" id="ptMonth" placeholder="1-12" maxlength="2" />
+          </div>
+          <div class="patient-field">
+            <label>BIRTH DAY</label>
+            <input type="text" id="ptDay" placeholder="1-31" maxlength="2" />
+          </div>
+        </div>
+        <div class="checkbox-row">
+          <label class="checkbox-item"><input type="checkbox" id="ptPregnant" /> Pregnant</label>
+          <label class="checkbox-item"><input type="checkbox" id="ptLactating" /> Lactating</label>
+          <label class="checkbox-item"><input type="checkbox" id="ptSmoker" /> Smoker</label>
+        </div>
+        <div class="patient-field">
+          <label>CLASS</label>
+          <select id="ptClass">
+            <option value="PROFESSIONAL">PROFESSIONAL</option>
+            <option value="CONSUMER">CONSUMER</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- MAIN PANELS -->
+  <main class="main">
+
+    <!-- MAS SCREENING PANEL -->
+    <div id="panel-mas" class="panel active">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">MAS Drug Screening</div>
+          <div class="panel-desc">Drug interactions, disease contraindications, allergy warnings, duplicate therapy — full patient profile screening</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="info-banner">
+          Drugs are identified by code type (GCR, GFC, or NDC). Use the Drug Lookup tab to resolve a name to a code.
+          <strong>NewDrugList</strong> = drugs being added. <strong>CurrentDrugList</strong> = drugs patient already takes.
+        </div>
+
+        <!-- New Drugs -->
+        <div class="drug-input-area">
+          <label>NEW DRUGS (being prescribed)</label>
+          <div class="drug-tags" id="newDrugTags"></div>
+          <div class="drug-add-row">
+            <input type="text" id="newDrugCode" placeholder="Drug code (e.g. 104045 or 00056-0172-70)" onkeydown="if(event.key==='Enter') addDrug('new')" />
+            <select id="newDrugType">
+              <option value="GCR">GCR</option>
+              <option value="GFC">GFC</option>
+              <option value="NDC">NDC</option>
+            </select>
+            <button class="btn-add-drug" onclick="addDrug('new')">+ New</button>
+          </div>
+        </div>
+
+        <!-- Current Drugs -->
+        <div class="drug-input-area">
+          <label>CURRENT DRUGS (patient already taking)</label>
+          <div class="drug-tags" id="currentDrugTags"></div>
+          <div class="drug-add-row">
+            <input type="text" id="currentDrugCode" placeholder="Drug code" onkeydown="if(event.key==='Enter') addDrug('current')" />
+            <select id="currentDrugType">
+              <option value="GCR">GCR</option>
+              <option value="GFC">GFC</option>
+              <option value="NDC">NDC</option>
+            </select>
+            <button class="btn-add-drug" onclick="addDrug('current')">+ Current</button>
+          </div>
+        </div>
+
+        <!-- Severity filter -->
+        <div class="single-drug-form">
+          <div class="form-row">
+            <div class="form-field">
+              <label>MIN SEVERITY FILTER</label>
+              <select id="masSeverity">
+                <option value="">All severities</option>
+                <option value="CONTRAINDICATED">CONTRAINDICATED</option>
+                <option value="MAJOR">MAJOR</option>
+                <option value="MODERATE" selected>MODERATE</option>
+                <option value="MINOR">MINOR</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>INTERACTION TYPES</label>
+              <select id="masTypeFilter">
+                <option value="all">All types</option>
+                <option value="drug">Drug-Drug only</option>
+                <option value="disease">Drug-Disease only</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button class="btn-primary" onclick="runMAS()" id="btnRunMAS">▶ Run Screening</button>
+          <button class="btn-secondary" onclick="runValidate()">✓ Validate Drugs First</button>
+          <button class="btn-secondary" onclick="clearMAS()">Clear</button>
+          <button class="btn-secondary" onclick="loadSample()">Load Sample</button>
+        </div>
+        <div id="masResults"></div>
+      </div>
+    </div>
+
+    <!-- DRUG LOOKUP PANEL -->
+    <div id="panel-lookup" class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Drug Lookup (LUSRequest)</div>
+          <div class="panel-desc">Resolve a generic or brand name to a GCR code using the CKO LookUp service</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="info-banner">
+          Use <strong>GNGCRRT</strong> to look up by generic name keyword, or <strong>PRDGCRRT</strong> for brand/product names.
+          Results give the GCR code needed for MAS screening.
+        </div>
+        <div class="single-drug-form">
+          <div class="form-row">
+            <div class="form-field">
+              <label>SEARCH KEYWORD</label>
+              <input type="text" id="lookupKey" placeholder="e.g. warfarin" onkeydown="if(event.key==='Enter') runLookup()" />
+            </div>
+            <div class="form-field">
+              <label>LOOKUP TYPE</label>
+              <select id="lookupType">
+                <option value="GNGCRRT">GNGCRRT (generic name)</option>
+                <option value="PRDGCRRT">PRDGCRRT (brand/product name)</option>
+                <option value="GENERIC_NAME">GENERIC_NAME (full name)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="btn-primary" onclick="runLookup()">▶ Lookup</button>
+          <button class="btn-secondary" onclick="clearResults('lookupResults')">Clear</button>
+        </div>
+        <div id="lookupResults"></div>
+      </div>
+    </div>
+
+    <!-- DRUGNOTES PANEL -->
+    <div id="panel-drugnotes" class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">DrugNotes</div>
+          <div class="panel-desc">Patient-friendly medication instructions (HTML), available in 15 languages</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="single-drug-form">
+          <div class="form-row">
+            <div class="form-field">
+              <label>DRUG CODE</label>
+              <input type="text" id="dnCode" placeholder="e.g. 123456 (GFC) or 12345-6789-10 (NDC)" />
+            </div>
+            <div class="form-field">
+              <label>CODE TYPE</label>
+              <select id="dnType">
+                <option value="GFC">GFC</option>
+                <option value="NDC">NDC</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row" style="margin-top:10px">
+            <div class="form-field">
+              <label>LANGUAGE</label>
+              <select id="dnLang">
+                <option value="English">English</option>
+                <option value="Spanish">Spanish</option>
+                <option value="French-Canadian">French-Canadian</option>
+                <option value="Portuguese-Brazilian">Portuguese-Brazilian</option>
+                <option value="German">German</option>
+                <option value="Italian">Italian</option>
+                <option value="Japanese">Japanese</option>
+                <option value="Korean">Korean</option>
+                <option value="Arabic">Arabic</option>
+                <option value="Russian">Russian</option>
+                <option value="Turkish">Turkish</option>
+                <option value="Polish">Polish</option>
+                <option value="Chinese-Simplified">Chinese-Simplified</option>
+                <option value="Chinese-Traditional">Chinese-Traditional</option>
+                <option value="Vietnamese">Vietnamese</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="btn-primary" onclick="runDrugNotes()">▶ Get DrugNotes</button>
+          <button class="btn-secondary" onclick="clearResults('dnResults')">Clear</button>
+        </div>
+        <div id="dnResults"></div>
+      </div>
+    </div>
+
+    <!-- DRUGPOINTS PANEL -->
+    <div id="panel-drugpoints" class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">DrugPoints</div>
+          <div class="panel-desc">Concise clinical monograph — prescribing summaries, dosing, adverse effects</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="single-drug-form">
+          <div class="form-row">
+            <div class="form-field">
+              <label>DRUG CODE</label>
+              <input type="text" id="dpCode" placeholder="e.g. 12345-6789-10 (NDC)" />
+            </div>
+            <div class="form-field">
+              <label>CODE TYPE</label>
+              <select id="dpType">
+                <option value="NDC">NDC</option>
+                <option value="GFC">GFC</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="btn-primary" onclick="runDrugPoints()">▶ Get DrugPoints</button>
+          <button class="btn-secondary" onclick="clearResults('dpResults')">Clear</button>
+        </div>
+        <div id="dpResults"></div>
+      </div>
+    </div>
+
+    <!-- VALIDATE PANEL -->
+    <div id="panel-validate" class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Validate Drug</div>
+          <div class="panel-desc">Check which CKO services a drug code is valid for before calling them</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="single-drug-form">
+          <div class="form-row">
+            <div class="form-field">
+              <label>DRUG CODE</label>
+              <input type="text" id="valCode" placeholder="e.g. 00029-3211-13 (NDC)" />
+            </div>
+            <div class="form-field">
+              <label>CODE TYPE</label>
+              <select id="valType">
+                <option value="NDC">NDC</option>
+                <option value="GFC">GFC</option>
+                <option value="GCR">GCR</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:12px">
+            <div class="sidebar-label" style="margin-bottom:8px">SERVICES TO CHECK</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <label class="checkbox-item"><input type="checkbox" class="val-svc" value="DRUGPOINTS" checked /> DrugPoints</label>
+              <label class="checkbox-item"><input type="checkbox" class="val-svc" value="PSD" checked /> PSD</label>
+              <label class="checkbox-item"><input type="checkbox" class="val-svc" value="IVSCREENING" checked /> IV Screening</label>
+              <label class="checkbox-item"><input type="checkbox" class="val-svc" value="WARNINGLABELS" checked /> Warning Labels</label>
+              <label class="checkbox-item"><input type="checkbox" class="val-svc" value="IMAGESIMPRINTS" checked /> Images/Imprints</label>
+              <label class="checkbox-item"><input type="checkbox" class="val-svc" value="DRUGNOTES" /> DrugNotes</label>
+            </div>
+          </div>
+        </div>
+        <div class="action-row">
+          <button class="btn-primary" onclick="runValidateDrug()">▶ Validate</button>
+          <button class="btn-secondary" onclick="clearResults('valResults')">Clear</button>
+        </div>
+        <div id="valResults"></div>
+      </div>
+    </div>
+
+    <!-- RAW REQUEST PANEL -->
+    <div id="panel-raw" class="panel">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">Raw JSON Request</div>
+          <div class="panel-desc">Send any arbitrary CKO JSON request body directly</div>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="form-field" style="margin-bottom:12px">
+          <label>REQUEST BODY (JSON)</label>
+          <textarea id="rawBody" style="width:100%;height:220px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;color:var(--text);font-family:var(--font-mono);font-size:12px;outline:none;resize:vertical;line-height:1.6;" placeholder='{"RequestType":"ServiceStatusRequest","Request":{}}' onkeydown="if(event.ctrlKey&&event.key==='Enter') sendRaw()"></textarea>
+        </div>
+        <div class="action-row">
+          <button class="btn-primary" onclick="sendRaw()">▶ Send Request</button>
+          <button class="btn-secondary" onclick="loadStatusTemplate()">Status template</button>
+          <button class="btn-secondary" onclick="loadLookupTemplate()">Lookup template</button>
+          <button class="btn-secondary" onclick="loadMASTemplate()">MAS template</button>
+        </div>
+        <div id="rawResults"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let newDrugs = [];    // {code, type}
+let currentDrugs = []; // {code, type}
+
+// ============================================================
+// CONFIG
+// ============================================================
+function getEndpoint() {
+  const url = document.getElementById('cfgUrl').value.trim();
+  if (!url) throw new Error('Endpoint URL not configured');
+  return url;
+}
+
+function getBasicAuthHeader() {
+  const user = document.getElementById('cfgUser').value.trim();
+  const pass = document.getElementById('cfgPass').value;
+  if (!user && !pass) return null;
+  return 'Basic ' + btoa(unescape(encodeURIComponent(user + ':' + pass)));
+}
+
+function getPatient() {
+  const year = document.getElementById('ptYear').value.trim();
+  const month = document.getElementById('ptMonth').value.trim();
+  const day = document.getElementById('ptDay').value.trim();
+  const p = {
+    GENDER: document.getElementById('ptGender').value,
+    BD_YEAR: year || '1970'
+  };
+  if (month) p.BD_MONTH = month;
+  if (day) p.BD_DAY = day;
+  p.PREGNANT = document.getElementById('ptPregnant').checked ? 'TRUE' : 'FALSE';
+  p.LACTATING = document.getElementById('ptLactating').checked ? 'TRUE' : 'FALSE';
+  p.SMOKER = document.getElementById('ptSmoker').checked ? 'TRUE' : 'FALSE';
+  return p;
+}
+
+// ============================================================
+// API LAYER — single CKO endpoint, all POST
+// ============================================================
+async function ckoRequest(body) {
+  const url = getEndpoint();
+  const headers = { 'Content-Type': 'application/json' };
+  const auth = getBasicAuthHeader();
+  if (auth) headers['Authorization'] = auth;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(body),
+    credentials: 'omit'
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401) throw new Error('Authentication failed — check username/password (HTTP 401)');
+  if (res.status === 403) throw new Error('Access forbidden — credentials may lack permission (HTTP 403)');
+  return { data, url, status: res.status, reqBody: body };
+}
+
+// ============================================================
+// CONNECTION TEST (Status service)
+// ============================================================
+async function testConnection() {
+  const dot = document.getElementById('statusDot');
+  const label = document.getElementById('statusLabel');
+  dot.className = 'status-dot';
+  label.textContent = 'testing...';
+
+  try {
+    const r = await ckoRequest({ RequestType: 'ServiceStatusRequest', Request: {} });
+    if (r.data?.Response?.IS_SUCCESS === 'TRUE') {
+      dot.className = 'status-dot connected';
+      const size = r.data.Response?.DataSetList?.SIZE || '?';
+      label.textContent = `connected · ${size} datasets`;
+    } else {
+      dot.className = 'status-dot error';
+      label.textContent = 'server error';
+    }
+  } catch (e) {
+    dot.className = 'status-dot error';
+    label.textContent = e.message;
+  }
+}
+
+// ============================================================
+// DRUG TAG MANAGEMENT
+// ============================================================
+function addDrug(list) {
+  const codeEl = document.getElementById(list === 'new' ? 'newDrugCode' : 'currentDrugCode');
+  const typeEl = document.getElementById(list === 'new' ? 'newDrugType' : 'currentDrugType');
+  const code = codeEl.value.trim();
+  if (!code) return;
+  const type = typeEl.value;
+  const arr = list === 'new' ? newDrugs : currentDrugs;
+  if (arr.find(d => d.code === code)) { codeEl.value = ''; return; }
+  arr.push({ code, type });
+  codeEl.value = '';
+  renderDrugTags();
+}
+
+function removeDrug(list, code) {
+  if (list === 'new') newDrugs = newDrugs.filter(d => d.code !== code);
+  else currentDrugs = currentDrugs.filter(d => d.code !== code);
+  renderDrugTags();
+}
+
+function clearMAS() {
+  newDrugs = []; currentDrugs = [];
+  renderDrugTags();
+  document.getElementById('masResults').innerHTML = '';
+}
+
+function loadSample() {
+  newDrugs = [{ code: '00056-0172-70', type: 'NDC' }];
+  currentDrugs = [{ code: '55935-0084-01', type: 'NDC' }];
+  document.getElementById('ptGender').value = 'FEMALE';
+  document.getElementById('ptYear').value = '1955';
+  document.getElementById('ptMonth').value = '2';
+  document.getElementById('ptDay').value = '23';
+  document.getElementById('ptPregnant').checked = false;
+  document.getElementById('ptLactating').checked = true;
+  document.getElementById('ptSmoker').checked = true;
+  renderDrugTags();
+}
+
+function renderDrugTags() {
+  const renderList = (arr, listId, listKey) =>
+    arr.map(d => `
+      <div class="drug-tag ${listKey === 'current' ? 'current' : ''}">
+        <span class="severity-badge sev-MINOR">${escHtml(d.type)}</span>
+        ${escHtml(d.code)}
+        <button class="drug-tag-remove" onclick="removeDrug('${listKey}','${escHtml(d.code)}')" title="Remove">×</button>
+      </div>`).join('');
+
+  document.getElementById('newDrugTags').innerHTML = renderList(newDrugs, 'newDrugTags', 'new');
+  document.getElementById('currentDrugTags').innerHTML = renderList(currentDrugs, 'currentDrugTags', 'current');
+}
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function switchTab(panelKey, badgeKey, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  // panel ID is panel-{panelKey}
+  const panelId = `panel-${panelKey}`;
+  document.getElementById(panelId).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ============================================================
+// RENDERING HELPERS
+// ============================================================
+function showLoading(id, msg = 'Calling CKO API...') {
+  document.getElementById(id).innerHTML = `
+    <div class="loading">
+      <div class="spinner"></div>
+      <span style="font-family:var(--font-mono);font-size:12px;color:var(--text3)">${msg}</span>
+    </div>`;
+}
+
+function clearResults(id) { document.getElementById(id).innerHTML = ''; }
+
+function showError(id, msg, r = null) {
+  document.getElementById(id).innerHTML =
+    (r ? renderReqLog(r) : '') +
+    `<div class="error-banner">⚠ ${escHtml(msg)}</div>`;
+}
+
+function renderReqLog({ url, status }) {
+  const cls = status && status < 400 ? 'req-status-ok' : 'req-status-err';
+  return `<div class="req-log">
+    <span class="req-method">POST</span>
+    <span class="req-url">${escHtml(url)}</span>
+    <span class="${cls}">${status || 'ERR'}</span>
+  </div>`;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function colorJson(obj) {
+  const json = JSON.stringify(obj, null, 2);
+  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, match => {
+    if (/^"/.test(match)) {
+      if (/:$/.test(match)) return `<span class="json-key">${match}</span>`;
+      return `<span class="json-string">${match}</span>`;
+    }
+    if (/true|false/.test(match)) return `<span class="json-bool">${match}</span>`;
+    if (/null/.test(match)) return `<span class="json-null">${match}</span>`;
+    return `<span class="json-number">${match}</span>`;
+  });
+}
+
+function toggleCard(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+
+function rawSection(req, resp) {
+  const id = 'raw-' + Math.random().toString(36).slice(2);
+  return `
+    <div class="raw-section">
+      <details>
+        <summary class="raw-toggle">Show raw request / response</summary>
+        <div style="margin-top:10px">
+          <div class="raw-section-label">Request Body</div>
+          <div class="json-viewer">${colorJson(req)}</div>
+          <div class="raw-section-label" style="margin-top:12px">Response Body</div>
+          <div class="json-viewer">${colorJson(resp)}</div>
+        </div>
+      </details>
+    </div>`;
+}
+
+// ============================================================
+// MAS SCREENING
+// ============================================================
+async function runMAS() {
+  if (newDrugs.length === 0 && currentDrugs.length === 0) {
+    showError('masResults', 'Please add at least one drug to screen.');
+    return;
+  }
+  const btn = document.getElementById('btnRunMAS');
+  btn.disabled = true;
+  showLoading('masResults', 'Running MAS drug screening...');
+
+  try {
+    const body = {
+      RequestType: 'MasRequest',
+      Request: {
+        CLASS: document.getElementById('ptClass').value,
+        Patient: getPatient()
+      }
+    };
+
+    if (newDrugs.length > 0) {
+      body.Request.NewDrugList = { Drug: newDrugs.map(d => ({ CODE: d.code, TYPE: d.type })) };
+    }
+    if (currentDrugs.length > 0) {
+      body.Request.CurrentDrugList = { Drug: currentDrugs.map(d => ({ CODE: d.code, TYPE: d.type })) };
+    }
+
+    // Filter
+    const sev = document.getElementById('masSeverity').value;
+    const typeFilter = document.getElementById('masTypeFilter').value;
+    const typeNames = typeFilter === 'drug' ? ['DRUG']
+      : typeFilter === 'disease' ? ['DISEASE']
+      : ['DRUG','FOOD','ETHANOL','LAB','TOBACCO','ALLERGY','TC_DUPLICATION','ANTAGONISM','INGREDIENT_DUPLICATION','DISEASE','PREGNANCY','LACTATION','PRECAUTION'];
+
+    body.Request.Filter = {
+      TypeFilter: typeNames.map(n => ({ NAME: n }))
+    };
+    if (sev) body.Request.Filter.SEVERITY = sev;
+
+    const r = await ckoRequest(body);
+    renderMASResults(r);
+
+  } catch (e) {
+    showError('masResults', e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderMASResults(r) {
+  const resp = r.data?.Response;
+  const container = document.getElementById('masResults');
+
+  if (!resp) {
+    container.innerHTML = renderReqLog(r) + `<div class="error-banner">⚠ Unexpected response format.</div>`;
+    return;
+  }
+
+  if (resp.IS_SUCCESS !== 'TRUE') {
+    container.innerHTML = renderReqLog(r) + `<div class="error-banner">⚠ IS_SUCCESS: FALSE — check your request or drug codes.</div>` + rawSection(r.reqBody, r.data);
+    return;
+  }
+
+  const warnings = resp.WarningList?.Warning || [];
+  const summary = resp.Summary;
+
+  if (warnings.length === 0) {
+    container.innerHTML = renderReqLog(r) + `<div class="success-banner">✓ No warnings found for the screened drug combination.</div>` + rawSection(r.reqBody, r.data);
+    updateBadge('ddi', 0);
+    return;
+  }
+
+  // Severity order
+  const sevOrder = { CONTRAINDICATED: 0, MAJOR: 1, MODERATE: 2, MINOR: 3, UNKNOWN: 4 };
+  const sorted = [...warnings].sort((a,b) => (sevOrder[a.SEVERITY] ?? 4) - (sevOrder[b.SEVERITY] ?? 4));
+
+  // Summary stats
+  const counts = {};
+  warnings.forEach(w => { counts[w.SEVERITY] = (counts[w.SEVERITY]||0) + 1; });
+  const typeCounts = {};
+  warnings.forEach(w => { typeCounts[w.Type] = (typeCounts[w.Type]||0) + 1; });
+
+  updateBadge('ddi', warnings.length);
+
+  const statsHtml = `
+    <div class="stats-bar">
+      <div class="stat-chip"><span class="stat-value">${warnings.length}</span><span class="stat-label">Total Warnings</span></div>
+      ${counts.CONTRAINDICATED ? `<div class="stat-chip danger"><span class="stat-value">${counts.CONTRAINDICATED}</span><span class="stat-label">Contraindicated</span></div>` : ''}
+      ${counts.MAJOR ? `<div class="stat-chip warn"><span class="stat-value">${counts.MAJOR}</span><span class="stat-label">Major</span></div>` : ''}
+      ${counts.MODERATE ? `<div class="stat-chip info"><span class="stat-value">${counts.MODERATE}</span><span class="stat-label">Moderate</span></div>` : ''}
+      ${counts.MINOR ? `<div class="stat-chip ok"><span class="stat-value">${counts.MINOR}</span><span class="stat-label">Minor</span></div>` : ''}
+    </div>`;
+
+  const cardsHtml = sorted.map((w, i) => {
+    const id = `mas-card-${i}`;
+    const allItems = Array.isArray(w.ItemList) ? w.ItemList : (w.ItemList ? [w.ItemList] : []);
+    const primaryItems = allItems.filter(il => il?.TYPE === 'SECONDARY_ITEM').flatMap(il => il?.Item || []);
+    const interactingItems = allItems.filter(il => il?.TYPE === 'INTERACTING_DRUG').flatMap(il => il?.Item || []);
+    const primaryLabel = primaryItems.find(it => it.TYPE === 'GCR' || it.TYPE === 'NAME')?.ID || primaryItems[0]?.ID || '?';
+    const interactingLabel = interactingItems.find(it => it.TYPE === 'NAME' || it.TYPE === 'GCR')?.ID || interactingItems[0]?.ID || '?';
+
+    return `
+      <div class="result-card">
+        <div class="result-card-header" onclick="toggleCard('${id}')">
+          <span class="severity-badge sev-${w.SEVERITY || 'UNKNOWN'}">${w.SEVERITY || '?'}</span>
+          <span class="severity-badge sev-UNKNOWN" style="margin-left:2px">${escHtml(w.Type || '')}</span>
+          <span class="result-card-title">${escHtml(primaryLabel)} ↔ ${escHtml(interactingLabel)}</span>
+          <span class="result-card-meta">${escHtml(w.DOCUMENTATION_RATING || '')} ▾</span>
+        </div>
+        <div class="result-card-body" id="${id}">
+          <div class="detail-grid">
+            <div class="detail-item"><label>Type</label><p>${escHtml(w.Type || 'N/A')}</p></div>
+            <div class="detail-item"><label>Source</label><p>${escHtml(w.SOURCE || 'N/A')}</p></div>
+            <div class="detail-item"><label>Documentation</label><p>${escHtml(w.DOCUMENTATION_RATING || 'N/A')}</p></div>
+            <div class="detail-item"><label>Monograph ID</label><p>${escHtml(String(w.MONOGRAPH_ID || 'N/A'))}</p></div>
+          </div>
+          ${w.WarningText ? `<div class="detail-text">${escHtml(w.WarningText)}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  container.innerHTML = renderReqLog(r) + statsHtml + `<div class="results-area">${cardsHtml}</div>` + rawSection(r.reqBody, r.data);
+}
+
+// ============================================================
+// MAS VALIDATE (called from button in MAS panel)
+// ============================================================
+async function runValidate() {
+  if (newDrugs.length === 0 && currentDrugs.length === 0) {
+    showError('masResults', 'Please add drugs first.'); return;
+  }
+  showLoading('masResults', 'Validating drug codes against MAS database...');
+  try {
+    const body = { RequestType: 'MASValidationRequest', Request: {} };
+    if (newDrugs.length > 0)
+      body.Request.NewDrugList = { Drug: newDrugs.map(d => ({ CODE: d.code, TYPE: d.type })) };
+    if (currentDrugs.length > 0)
+      body.Request.CurrentDrugList = { Drug: currentDrugs.map(d => ({ CODE: d.code, TYPE: d.type })) };
+
+    const r = await ckoRequest(body);
+    const resp = r.data?.Response;
+    const container = document.getElementById('masResults');
+
+    if (resp?.IS_SUCCESS === 'TRUE' && resp.WARNING_TOTAL === 0) {
+      container.innerHTML = renderReqLog(r) + `<div class="success-banner">✓ All drugs validated successfully — safe to run screening.</div>` + rawSection(r.reqBody, r.data);
+    } else {
+      const warnings = resp?.WarningList?.Warning || [];
+      const warnHtml = warnings.map((w, i) => `
+        <div class="result-card">
+          <div class="result-card-header" onclick="toggleCard('val-w-${i}')">
+            <span class="severity-badge sev-UNKNOWN">VALIDATE WARNING</span>
+            <span class="result-card-title">${escHtml(w.WarningText || 'Unknown warning')}</span>
+            <span class="result-card-meta">▾</span>
+          </div>
+          <div class="result-card-body" id="val-w-${i}">
+            <div class="json-viewer">${colorJson(w)}</div>
+          </div>
+        </div>`).join('');
+      container.innerHTML = renderReqLog(r)
+        + `<div class="error-banner" style="margin-bottom:12px">⚠ Validation warnings — some drugs may not be in the MAS database.</div>`
+        + `<div class="results-area">${warnHtml}</div>` + rawSection(r.reqBody, r.data);
+    }
+  } catch(e) { showError('masResults', e.message); }
+}
+
+// ============================================================
+// DRUG LOOKUP
+// ============================================================
+async function runLookup() {
+  const key = document.getElementById('lookupKey').value.trim();
+  const type = document.getElementById('lookupType').value;
+  if (!key) { showError('lookupResults', 'Please enter a search keyword.'); return; }
+
+  showLoading('lookupResults', `Searching ${type} for "${key}"...`);
+
+  try {
+    let searchName;
+    if (type === 'GNGCRRT' || type === 'PRDGCRRT') searchName = 'key';
+    else searchName = 'generic_name';
+
+    const body = {
+      RequestType: 'LUSRequest',
+      Request: {
+        LookUpType: type,
+        SearchParameterList: {
+          OPERATOR: 'OR',
+          SearchParameters: [{ NAME: searchName, VALUE: key }]
+        }
+      }
+    };
+
+    const r = await ckoRequest(body);
+    renderLookupResults(r, type);
+
+  } catch (e) { showError('lookupResults', e.message); }
+}
+
+function renderLookupResults(r, type) {
+  const resp = r.data?.Response;
+  const container = document.getElementById('lookupResults');
+
+  if (!resp?.SUCCESS || resp.SUCCESS !== 'TRUE') {
+    container.innerHTML = renderReqLog(r) + `<div class="error-banner">⚠ Lookup failed or returned no results.</div>` + rawSection(r.reqBody, r.data);
+    return;
+  }
+
+  const records = resp.LookUpRecordList || [];
+  const header = (resp.HEADER || '').split('|');
+  const size = resp.SIZE || 0;
+
+  if (!records.length) {
+    container.innerHTML = renderReqLog(r) + `<div class="success-banner">No results found for that query.</div>`;
+    return;
+  }
+
+  const tableRows = records.slice(0, 50).map(item => {
+    const fields = item.LookUpRecord ? item.LookUpRecord.split('|') : [];
+    return `<tr>${fields.map(f => `<td style="padding:6px 10px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-size:11px;color:var(--text2)">${escHtml(f)}</td>`).join('')}</tr>`;
+  }).join('');
+
+  const tableHeaders = header.map(h => `<th style="padding:6px 10px;border-bottom:1px solid var(--border2);font-family:var(--font-mono);font-size:10px;color:var(--text3);text-align:left;text-transform:uppercase;letter-spacing:0.5px">${escHtml(h)}</th>`).join('');
+
+  container.innerHTML = renderReqLog(r)
+    + `<div class="info-banner" style="margin-bottom:12px">Found <strong>${size}</strong> records (showing up to 50). HEADER: <code style="font-family:var(--font-mono)">${escHtml(resp.HEADER || '')}</code></div>`
+    + `<div style="overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:12px">
+        <table style="width:100%;border-collapse:collapse">
+          <thead><tr>${tableHeaders}</tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>`
+    + rawSection(r.reqBody, r.data);
+}
+
+// ============================================================
+// DRUGNOTES
+// ============================================================
+async function runDrugNotes() {
+  const code = document.getElementById('dnCode').value.trim();
+  const type = document.getElementById('dnType').value;
+  const lang = document.getElementById('dnLang').value;
+  if (!code) { showError('dnResults', 'Please enter a drug code.'); return; }
+
+  showLoading('dnResults');
+  try {
+    const body = {
+      RequestType: 'DrugNotesRequest',
+      Request: {
+        LANGUAGE: lang,
+        NewDrugList: { Drug: [{ CODE: code, TYPE: type }] }
+      }
+    };
+    const r = await ckoRequest(body);
+    const resp = r.data?.Response;
+    const container = document.getElementById('dnResults');
+
+    if (resp?.IS_SUCCESS !== 'TRUE') {
+      container.innerHTML = renderReqLog(r) + `<div class="error-banner">⚠ Request failed. IS_SUCCESS: FALSE</div>` + rawSection(r.reqBody, r.data);
+      return;
+    }
+
+    const docs = resp.DocumentList?.Document || [];
+    if (!docs.length) {
+      container.innerHTML = renderReqLog(r) + `<div class="success-banner">No DrugNotes documents returned for this drug.</div>` + rawSection(r.reqBody, r.data);
+      return;
+    }
+
+    const htmlDocs = docs.map((doc, i) => `
+      <div class="result-card">
+        <div class="result-card-header" onclick="toggleCard('dn-doc-${i}')">
+          <span class="severity-badge sev-MINOR">${escHtml(doc.DRUG_TYPE || '')}</span>
+          <span class="result-card-title">DrugNotes — ${escHtml(doc.DRUG_CODE || '')} · ${lang}</span>
+          <span class="result-card-meta">▾</span>
+        </div>
+        <div class="result-card-body open" id="dn-doc-${i}">
+          <div style="background:white;border-radius:6px;padding:16px;color:#111;font-size:13px;line-height:1.6">
+            ${doc.Text || '<em>No text content</em>'}
+          </div>
+        </div>
+      </div>`).join('');
+
+    container.innerHTML = renderReqLog(r) + `<div class="results-area">${htmlDocs}</div>` + rawSection(r.reqBody, r.data);
+
+  } catch(e) { showError('dnResults', e.message); }
+}
+
+// ============================================================
+// DRUGPOINTS
+// ============================================================
+async function runDrugPoints() {
+  const code = document.getElementById('dpCode').value.trim();
+  const type = document.getElementById('dpType').value;
+  if (!code) { showError('dpResults', 'Please enter a drug code.'); return; }
+
+  showLoading('dpResults');
+  try {
+    const body = {
+      RequestType: 'DrugPointsRequest',
+      Request: { NewDrugList: { Drug: [{ CODE: code, TYPE: type }] } }
+    };
+    const r = await ckoRequest(body);
+    const container = document.getElementById('dpResults');
+
+    if (r.data?.Response?.IS_SUCCESS !== 'TRUE') {
+      container.innerHTML = renderReqLog(r) + `<div class="error-banner">⚠ DrugPoints request failed.</div>` + rawSection(r.reqBody, r.data);
+      return;
+    }
+
+    container.innerHTML = renderReqLog(r)
+      + `<div class="success-banner" style="margin-bottom:12px">✓ DrugPoints retrieved. See raw response below.</div>`
+      + rawSection(r.reqBody, r.data);
+
+  } catch(e) { showError('dpResults', e.message); }
+}
+
+// ============================================================
+// VALIDATE DRUG (for specific services)
+// ============================================================
+async function runValidateDrug() {
+  const code = document.getElementById('valCode').value.trim();
+  const type = document.getElementById('valType').value;
+  if (!code) { showError('valResults', 'Please enter a drug code.'); return; }
+
+  showLoading('valResults');
+  try {
+    const svcs = {};
+    document.querySelectorAll('.val-svc').forEach(cb => {
+      svcs[cb.value] = cb.checked ? 'YES' : 'NO';
+    });
+
+    const body = {
+      RequestType: 'ValidationRequest',
+      Request: {
+        ...svcs,
+        NewDrugList: { Drug: [{ CODE: code, TYPE: type }] }
+      }
+    };
+
+    const r = await ckoRequest(body);
+    const resp = r.data?.Response;
+    const container = document.getElementById('valResults');
+
+    if (resp?.IS_SUCCESS !== 'TRUE') {
+      container.innerHTML = renderReqLog(r) + `<div class="error-banner">⚠ Validation request failed.</div>` + rawSection(r.reqBody, r.data);
+      return;
+    }
+
+    const drugs = [...(resp.NewDrugList?.Drug || []), ...(resp.CurrentDrugList?.Drug || [])];
+    const serviceKeys = Object.keys(svcs).filter(k => svcs[k] === 'YES');
+
+    const tableRows = drugs.map(drug => {
+      const cells = serviceKeys.map(k => {
+        const val = drug[k] || '';
+        let color = 'var(--text3)';
+        if (val === 'VALID') color = 'var(--green)';
+        else if (val === 'INVALID') color = 'var(--red)';
+        else if (val === 'NOTAPPLICABLE') color = 'var(--text3)';
+        return `<td style="padding:8px 10px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-size:11px;color:${color}">${escHtml(val)}</td>`;
+      }).join('');
+      return `<tr><td style="padding:8px 10px;border-bottom:1px solid var(--border);font-family:var(--font-mono);font-size:12px;color:var(--text)">${escHtml(drug.CODE)} <span style="color:var(--text3);font-size:10px">${escHtml(drug.TYPE)}</span></td>${cells}</tr>`;
+    }).join('');
+
+    const headerCells = ['Drug', ...serviceKeys].map(h =>
+      `<th style="padding:8px 10px;border-bottom:1px solid var(--border2);font-family:var(--font-mono);font-size:10px;color:var(--text3);text-align:left;text-transform:uppercase;letter-spacing:0.5px">${escHtml(h)}</th>`
+    ).join('');
+
+    const summary = `
+      <div class="stats-bar" style="margin-bottom:12px">
+        <div class="stat-chip ok"><span class="stat-value">${resp.VALID_TOTAL || 0}</span><span class="stat-label">Valid</span></div>
+        <div class="stat-chip danger"><span class="stat-value">${resp.INVALID_TOTAL || 0}</span><span class="stat-label">Invalid</span></div>
+        <div class="stat-chip"><span class="stat-value">${resp.NOTAPPLICABLE_TOTAL || 0}</span><span class="stat-label">N/A</span></div>
+      </div>`;
+
+    container.innerHTML = renderReqLog(r) + summary
+      + `<div style="overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:12px">
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>${headerCells}</tr></thead>
+            <tbody>${tableRows}</tbody>
+          </table>
+        </div>`
+      + rawSection(r.reqBody, r.data);
+
+  } catch(e) { showError('valResults', e.message); }
+}
+
+// ============================================================
+// RAW REQUEST PANEL
+// ============================================================
+async function sendRaw() {
+  const raw = document.getElementById('rawBody').value.trim();
+  if (!raw) { showError('rawResults', 'Please enter a request body.'); return; }
+
+  let body;
+  try { body = JSON.parse(raw); }
+  catch(e) { showError('rawResults', `Invalid JSON: ${e.message}`); return; }
+
+  showLoading('rawResults');
+  try {
+    const r = await ckoRequest(body);
+    document.getElementById('rawResults').innerHTML =
+      renderReqLog(r) + rawSection(r.reqBody, r.data);
+  } catch(e) { showError('rawResults', e.message); }
+}
+
+function loadStatusTemplate() {
+  document.getElementById('rawBody').value = JSON.stringify(
+    { RequestType: 'ServiceStatusRequest', Request: {} }, null, 2);
+}
+function loadLookupTemplate() {
+  document.getElementById('rawBody').value = JSON.stringify({
+    RequestType: 'LUSRequest',
+    Request: {
+      LookUpType: 'GNGCRRT',
+      SearchParameterList: {
+        OPERATOR: 'OR',
+        SearchParameters: [{ NAME: 'key', VALUE: 'warfarin' }]
+      }
+    }
+  }, null, 2);
+}
+function loadMASTemplate() {
+  document.getElementById('rawBody').value = JSON.stringify({
+    RequestType: 'MasRequest',
+    Request: {
+      CLASS: 'PROFESSIONAL',
+      Patient: { GENDER: 'FEMALE', BD_YEAR: '1955', BD_MONTH: '2', BD_DAY: '23', LACTATING: 'TRUE', PREGNANT: 'FALSE', SMOKER: 'TRUE' },
+      CurrentDrugList: { Drug: [{ CODE: '00056-0172-70', TYPE: 'NDC', ORDER_ID: '123-AA' }] },
+      NewDrugList: { Drug: [{ CODE: '55935-0084-01', TYPE: 'NDC' }] },
+      AllergenList: { Allergen: [{ CODE: '7700090', TYPE: 'MDX_ALG' }] },
+      IndicationList: { Indication: [{ CODE: '011.30', TYPE: 'ICD_9' }] },
+      Filter: { SEVERITY: 'MODERATE', TypeFilter: [{ NAME: 'DRUG' }, { NAME: 'DISEASE' }, { NAME: 'ALLERGY' }] }
+    }
+  }, null, 2);
+}
+
+// ============================================================
+// BADGE
+// ============================================================
+function updateBadge(tab, count) {
+  const badge = document.getElementById(`badge-${tab}`);
+  if (!badge) return;
+  badge.textContent = count;
+  badge.classList.toggle('visible', count > 0);
+}
+
+// ============================================================
+// INIT — restore config from sessionStorage
+// ============================================================
+(function init() {
+  const saved = sessionStorage.getItem('cko_config');
+  if (saved) {
+    try {
+      const cfg = JSON.parse(saved);
+      if (cfg.url)  document.getElementById('cfgUrl').value  = cfg.url;
+      if (cfg.user) document.getElementById('cfgUser').value = cfg.user;
+      // Never persist password — user must re-enter each session
+    } catch (e) {}
+  }
+  ['cfgUrl','cfgUser'].forEach(id =>
+    document.getElementById(id).addEventListener('change', saveConfig)
+  );
+})();
+
+function saveConfig() {
+  // Only save URL and username — never save the password
+  sessionStorage.setItem('cko_config', JSON.stringify({
+    url:  document.getElementById('cfgUrl').value.trim(),
+    user: document.getElementById('cfgUser').value.trim()
+  }));
+}
+</script>
+</body>
+</html>
