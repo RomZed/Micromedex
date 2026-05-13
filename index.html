@@ -357,6 +357,23 @@
   .raw-toggle:hover { color: var(--accent); }
   .raw-section { margin-top: 16px; }
   .raw-section-label { font-size: 10px; font-family: var(--font-mono); color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+
+  /* CONNECTION RESULT BOX */
+  .conn-result {
+    display: none; margin-top: 10px; padding: 12px 14px;
+    border-radius: 6px; font-size: 12px; line-height: 1.6;
+    border: 1px solid var(--border); animation: fadeIn 0.2s ease;
+  }
+  .conn-testing { background: var(--surface2); color: var(--text2); display: flex; align-items: center; gap: 8px; }
+  .conn-ok      { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.3); color: var(--text); }
+  .conn-error   { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.3); color: var(--text); }
+  .conn-result code { font-family: var(--font-mono); background: rgba(255,255,255,0.07); padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+  .conn-result ul { color: var(--text2); }
+  .conn-spinner {
+    width: 13px; height: 13px; border: 2px solid var(--border2);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.7s linear infinite; flex-shrink: 0;
+  }
 </style>
 </head>
 <body>
@@ -383,21 +400,14 @@
     <div class="sidebar-section">
       <div class="sidebar-label">CKO Connection</div>
       <div class="config-field">
-        <label>ENDPOINT URL</label>
-        <input type="text" id="cfgUrl" placeholder="https://www.micromedexsolutions.com/ckoapp/librarian/PFActionId/ckoapp.JsonRequest" />
+        <label>PROXY URL</label>
+        <input type="text" id="cfgUrl" placeholder="http://localhost:8765/cko" value="http://localhost:8765/cko" />
       </div>
-      <div class="config-field">
-        <label>USERNAME</label>
-        <input type="text" id="cfgUser" placeholder="your username" autocomplete="username" />
+      <div class="config-hint" style="margin-bottom:8px">
+        Run <strong>proxy.py</strong> on your machine first — it forwards requests to Micromedex with your credentials. Leave URL as <em>localhost:8765/cko</em>.
       </div>
-      <div class="config-field">
-        <label>PASSWORD</label>
-        <input type="password" id="cfgPass" placeholder="your password" autocomplete="current-password" />
-      </div>
-      <div class="config-hint">
-        Credentials sent as HTTP Basic Auth on every request.
-      </div>
-      <button class="btn-test-conn" onclick="testConnection()">▷ Test Connection (Status)</button>
+      <button class="btn-test-conn" id="btnTestConn" onclick="testConnection()">▷ Test Connection (Status)</button>
+      <div id="connResult" class="conn-result"></div>
     </div>
 
     <!-- Tabs -->
@@ -761,17 +771,16 @@ let currentDrugs = []; // {code, type}
 // CONFIG
 // ============================================================
 function getEndpoint() {
+  const btn = document.getElementById('btnTestConn');
+  btn.disabled = true;
+  btn.textContent = '… testing';
+
   const url = document.getElementById('cfgUrl').value.trim();
   if (!url) throw new Error('Endpoint URL not configured');
   return url;
 }
 
-function getBasicAuthHeader() {
-  const user = document.getElementById('cfgUser').value.trim();
-  const pass = document.getElementById('cfgPass').value;
-  if (!user && !pass) return null;
-  return 'Basic ' + btoa(unescape(encodeURIComponent(user + ':' + pass)));
-}
+// Auth is handled by proxy.py — no credentials needed in the browser
 
 function getPatient() {
   const year = document.getElementById('ptYear').value.trim();
@@ -794,14 +803,10 @@ function getPatient() {
 // ============================================================
 async function ckoRequest(body) {
   const url = getEndpoint();
-  const headers = { 'Content-Type': 'application/json' };
-  const auth = getBasicAuthHeader();
-  if (auth) headers['Authorization'] = auth;
   const res = await fetch(url, {
     method: 'POST',
-    headers,
-    body: JSON.stringify(body),
-    credentials: 'omit'
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
   });
   const data = await res.json().catch(() => ({}));
   if (res.status === 401) throw new Error('Authentication failed — check username/password (HTTP 401)');
@@ -813,24 +818,75 @@ async function ckoRequest(body) {
 // CONNECTION TEST (Status service)
 // ============================================================
 async function testConnection() {
-  const dot = document.getElementById('statusDot');
+  const dot   = document.getElementById('statusDot');
   const label = document.getElementById('statusLabel');
-  dot.className = 'status-dot';
+  const box   = document.getElementById('connResult');
+
+  dot.className    = 'status-dot';
   label.textContent = 'testing...';
+  box.style.display = 'block';
+  box.className     = 'conn-result conn-testing';
+  box.innerHTML     = '<span class="conn-spinner"></span> Sending ServiceStatusRequest to CKO…';
+
+  const url = document.getElementById('cfgUrl').value.trim();
+  if (!url) {
+    dot.className     = 'status-dot error';
+    label.textContent = 'no URL';
+    box.className     = 'conn-result conn-error';
+    box.innerHTML     = '⚠ Please enter the Endpoint URL (e.g. http://localhost:8765/cko)';
+    return;
+  }
 
   try {
     const r = await ckoRequest({ RequestType: 'ServiceStatusRequest', Request: {} });
-    if (r.data?.Response?.IS_SUCCESS === 'TRUE') {
-      dot.className = 'status-dot connected';
-      const size = r.data.Response?.DataSetList?.SIZE || '?';
-      label.textContent = `connected · ${size} datasets`;
+    const resp = r.data?.Response;
+
+    if (resp?.IS_SUCCESS === 'TRUE') {
+      dot.className     = 'status-dot connected';
+      label.textContent = 'connected';
+      const datasets    = resp?.DataSetList?.DataSet || [];
+      const dsArr       = Array.isArray(datasets) ? datasets : [datasets];
+      const lines       = dsArr.map(ds => {
+        const cs = ds?.ContentSetList?.ContentSet;
+        const arr = cs ? (Array.isArray(cs) ? cs : [cs]) : [];
+        const ver = arr[0]?.VERSION || '?';
+        return `<div style="margin-top:4px"><span style="color:var(--accent)">${escHtml(ds.TYPE||'?')}</span> <span style="color:var(--text3)">v${escHtml(ver)}</span></div>`;
+      }).join('');
+      box.className = 'conn-result conn-ok';
+      box.innerHTML = `<strong>✓ Connected</strong> — CKO is reachable and responding.<br><br>
+        <span style="font-size:11px;color:var(--text2)">URL: ${escHtml(url)}</span>
+        <div style="margin-top:10px;font-size:11px;font-family:var(--font-mono)">${lines}</div>`;
     } else {
-      dot.className = 'status-dot error';
-      label.textContent = 'server error';
+      dot.className     = 'status-dot error';
+      label.textContent = 'error';
+      box.className     = 'conn-result conn-error';
+      box.innerHTML = `⚠ <strong>CKO responded but IS_SUCCESS is not TRUE.</strong><br><br>
+        <pre style="font-size:11px;white-space:pre-wrap;margin-top:8px">${escHtml(JSON.stringify(r.data, null, 2))}</pre>`;
     }
   } catch (e) {
-    dot.className = 'status-dot error';
-    label.textContent = e.message;
+    dot.className     = 'status-dot error';
+    label.textContent = 'failed';
+    box.className     = 'conn-result conn-error';
+
+    let hint = '';
+    if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError') || e.message.includes('Load failed')) {
+      hint = `<br><br><strong>Likely causes:</strong>
+        <ul style="margin:8px 0 0 16px;line-height:1.8">
+          <li>The proxy (<code>proxy.py</code>) is not running — start it first</li>
+          <li>Wrong URL — should be <code>http://localhost:8765/cko</code></li>
+          <li>A firewall is blocking localhost:8765</li>
+          <li>If calling Micromedex directly: CORS or IP allowlist block</li>
+        </ul>`;
+    } else if (e.message.includes('401')) {
+      hint = '<br><br><strong>Check:</strong> username and password in proxy.py are correct.';
+    } else if (e.message.includes('403')) {
+      hint = '<br><br><strong>Check:</strong> your IP is on the Merative allowlist, or credentials lack permission.';
+    }
+
+    box.innerHTML = `⚠ <strong>Request failed: ${escHtml(e.message)}</strong>${hint}`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '▷ Test Connection (Status)';
   }
 }
 
@@ -1418,21 +1474,15 @@ function updateBadge(tab, count) {
   if (saved) {
     try {
       const cfg = JSON.parse(saved);
-      if (cfg.url)  document.getElementById('cfgUrl').value  = cfg.url;
-      if (cfg.user) document.getElementById('cfgUser').value = cfg.user;
-      // Never persist password — user must re-enter each session
+      if (cfg.url) document.getElementById('cfgUrl').value = cfg.url;
     } catch (e) {}
   }
-  ['cfgUrl','cfgUser'].forEach(id =>
-    document.getElementById(id).addEventListener('change', saveConfig)
-  );
+  document.getElementById('cfgUrl').addEventListener('change', saveConfig);
 })();
 
 function saveConfig() {
-  // Only save URL and username — never save the password
   sessionStorage.setItem('cko_config', JSON.stringify({
-    url:  document.getElementById('cfgUrl').value.trim(),
-    user: document.getElementById('cfgUser').value.trim()
+    url: document.getElementById('cfgUrl').value.trim()
   }));
 }
 </script>
