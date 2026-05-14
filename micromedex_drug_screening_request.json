@@ -1,0 +1,355 @@
+{
+  "_comment": "Micromedex CKO MAS Drug Screening Request — Generic Name Lookup + Screening",
+  "_note": "Step 1 of 2: Use GENERIC_NAME LookUp to resolve each drug name to a GCR/GFC code before running the MAS screening below.",
+
+  "LookupRequests": {
+    "_description": "Use these individual LookUp requests to resolve each generic name to a valid CKO drug code (GCR/GFC). Submit each to: http://<host>:<port>/ckoapp/librarian/PFActionId/ckoapp.JsonRequest",
+    "Drugs": [
+      {
+        "DrugName": "Metformin",
+        "LookupRequest": {
+          "RequestType": "LUSRequest",
+          "Request": {
+            "LookUpType": "GENERIC_NAME",
+            "SearchParameterList": {
+              "OPERATOR": "AND",
+              "SearchParameters": [
+                {
+                  "NAME": "generic_name",
+                  "VALUE": "Metformin"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "DrugName": "Acetylsalicylic Acid (Aspirin)",
+        "LookupRequest": {
+          "RequestType": "LUSRequest",
+          "Request": {
+            "LookUpType": "GENERIC_NAME",
+            "SearchParameterList": {
+              "OPERATOR": "AND",
+              "SearchParameters": [
+                {
+                  "NAME": "generic_name",
+                  "VALUE": "Acetylsalicylic"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "DrugName": "Insulin Degludec",
+        "LookupRequest": {
+          "RequestType": "LUSRequest",
+          "Request": {
+            "LookUpType": "GENERIC_NAME",
+            "SearchParameterList": {
+              "OPERATOR": "AND",
+              "SearchParameters": [
+                {
+                  "NAME": "generic_name",
+                  "VALUE": "Insulin Degludec"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "DrugName": "Atorvastatin",
+        "LookupRequest": {
+          "RequestType": "LUSRequest",
+          "Request": {
+            "LookUpType": "GENERIC_NAME",
+            "SearchParameterList": {
+              "OPERATOR": "AND",
+              "SearchParameters": [
+                {
+                  "NAME": "generic_name",
+                  "VALUE": "Atorvastatin"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "DrugName": "Prednisone",
+        "LookupRequest": {
+          "RequestType": "LUSRequest",
+          "Request": {
+            "LookUpType": "GENERIC_NAME",
+            "SearchParameterList": {
+              "OPERATOR": "AND",
+              "SearchParameters": [
+                {
+                  "NAME": "generic_name",
+                  "VALUE": "Prednisone"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "DrugName": "Bisoprolol",
+        "LookupRequest": {
+          "RequestType": "LUSRequest",
+          "Request": {
+            "LookUpType": "GENERIC_NAME",
+            "SearchParameterList": {
+              "OPERATOR": "AND",
+              "SearchParameters": [
+                {
+                  "NAME": "generic_name",
+                  "VALUE": "Bisoprolol"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "DrugName": "Risedronic Acid (Risedronate)",
+        "LookupRequest": {
+          "RequestType": "LUSRequest",
+          "Request": {
+            "LookUpType": "GENERIC_NAME",
+            "SearchParameterList": {
+              "OPERATOR": "AND",
+              "SearchParameters": [
+                {
+                  "NAME": "generic_name",
+                  "VALUE": "Risedronate"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "DrugName": "Magnesium Oxide",
+        "LookupRequest": {
+          "RequestType": "LUSRequest",
+          "Request": {
+            "LookUpType": "GENERIC_NAME",
+            "SearchParameterList": {
+              "OPERATOR": "AND",
+              "SearchParameters": [
+                {
+                  "NAME": "generic_name",
+                  "VALUE": "Magnesium Oxide"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "DrugName": "Mycophenolic Acid (Mycophenolate)",
+        "LookupRequest": {
+          "RequestType": "LUSRequest",
+          "Request": {
+            "LookUpType": "GENERIC_NAME",
+            "SearchParameterList": {
+              "OPERATOR": "AND",
+              "SearchParameters": [
+                {
+                  "NAME": "generic_name",
+                  "VALUE": "Mycophenolate"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "DrugName": "Valsartan",
+        "LookupRequest": {
+          "RequestType": "LUSRequest",
+          "Request": {
+            "LookUpType": "GENERIC_NAME",
+            "SearchParameterList": {
+              "OPERATOR": "AND",
+              "SearchParameters": [
+                {
+                  "NAME": "generic_name",
+                  "VALUE": "Valsartan"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
+  },
+
+  "MASValidationRequest": {
+    "_description": "Step 2a: Validate drug presence in the Micromedex database before screening. Replace GCR CODE values with actual GCR codes obtained from Step 1 LookUp responses.",
+    "RequestType": "MASValidationRequest",
+    "Request": {
+      "NewDrugList": {
+        "Drug": [
+          {
+            "_drugName": "Metformin",
+            "CODE": "METFORMIN_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-001"
+          },
+          {
+            "_drugName": "Acetylsalicylic Acid (Aspirin)",
+            "CODE": "ACETYLSALICYLICACID_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-002"
+          },
+          {
+            "_drugName": "Insulin Degludec",
+            "CODE": "INSULINDEGLUDEC_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-003"
+          },
+          {
+            "_drugName": "Atorvastatin",
+            "CODE": "ATORVASTATIN_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-004"
+          },
+          {
+            "_drugName": "Prednisone",
+            "CODE": "PREDNISONE_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-005"
+          },
+          {
+            "_drugName": "Bisoprolol",
+            "CODE": "BISOPROLOL_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-006"
+          },
+          {
+            "_drugName": "Risedronic Acid (Risedronate)",
+            "CODE": "RISEDRONATE_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-007"
+          },
+          {
+            "_drugName": "Magnesium Oxide",
+            "CODE": "MAGNESIUMOXIDE_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-008"
+          },
+          {
+            "_drugName": "Mycophenolic Acid (Mycophenolate)",
+            "CODE": "MYCOPHENOLATE_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-009"
+          },
+          {
+            "_drugName": "Valsartan",
+            "CODE": "VALSARTAN_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-010"
+          }
+        ]
+      }
+    }
+  },
+
+  "MASScreeningRequest": {
+    "_description": "Step 2b: Full MAS Drug Screening Request. Replace GCR CODE placeholder values with actual GCR codes from Step 1 LookUp responses. Patient demographics below are illustrative — replace with real patient data.",
+    "RequestType": "MasRequest",
+    "Request": {
+      "CLASS": "PROFESSIONAL",
+      "Patient": {
+        "GENDER": "MALE",
+        "BD_YEAR": "1960",
+        "BD_MONTH": "6",
+        "BD_DAY": "15",
+        "LACTATING": "FALSE",
+        "PREGNANT": "FALSE",
+        "SMOKER": "FALSE"
+      },
+      "NewDrugList": {
+        "Drug": [
+          {
+            "_drugName": "Metformin",
+            "CODE": "METFORMIN_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-001"
+          },
+          {
+            "_drugName": "Acetylsalicylic Acid (Aspirin)",
+            "CODE": "ACETYLSALICYLICACID_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-002"
+          },
+          {
+            "_drugName": "Insulin Degludec",
+            "CODE": "INSULINDEGLUDEC_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-003"
+          },
+          {
+            "_drugName": "Atorvastatin",
+            "CODE": "ATORVASTATIN_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-004"
+          },
+          {
+            "_drugName": "Prednisone",
+            "CODE": "PREDNISONE_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-005"
+          },
+          {
+            "_drugName": "Bisoprolol",
+            "CODE": "BISOPROLOL_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-006"
+          },
+          {
+            "_drugName": "Risedronic Acid (Risedronate)",
+            "CODE": "RISEDRONATE_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-007"
+          },
+          {
+            "_drugName": "Magnesium Oxide",
+            "CODE": "MAGNESIUMOXIDE_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-008"
+          },
+          {
+            "_drugName": "Mycophenolic Acid (Mycophenolate)",
+            "CODE": "MYCOPHENOLATE_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-009"
+          },
+          {
+            "_drugName": "Valsartan",
+            "CODE": "VALSARTAN_GCR",
+            "TYPE": "GCR",
+            "ORDER_ID": "ORD-010"
+          }
+        ]
+      },
+      "Filter": {
+        "DOCUMENTATION_RATING": "FAIR",
+        "SEVERITY": "MINOR",
+        "TypeFilter": [
+          { "NAME": "DRUG" },
+          { "NAME": "LAB" },
+          { "NAME": "DISEASE" },
+          { "NAME": "ALLERGY" },
+          { "NAME": "TC_DUPLICATION" },
+          { "NAME": "ANTAGONISM" },
+          { "NAME": "INGREDIENT_DUPLICATION" }
+        ]
+      }
+    }
+  }
+}
